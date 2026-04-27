@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json.schemastore.org/nest-cli",
+  "collection": "@nestjs/schematics",
+  "sourceRoot": "src",
+  "compilerOptions": {
+    "webpack": true,
+    "deleteOutDir": true,
+    "plugins": ["@nestjs/swagger"],
+    "assets": [
+      {
+        "include": "libs/infrastructure/persistence/prisma/schema.prisma",
+        "outDir": "dist/libs/infrastructure/persistence/prisma"
+      }
+    ]
+  }
+}

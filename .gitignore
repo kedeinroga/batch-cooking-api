@@ -1,0 +1,20 @@
+node_modules
+dist
+coverage
+
+# Secrets — nunca commitear
+.env
+config/
+
+# Prisma generated
+/generated/prisma
+node_modules/.prisma
+
+# OS
+.DS_Store
+
+# IDE
+.idea
+.vscode
+
+/PRD

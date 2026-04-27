@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "skills": {
+    "nestjs-expert": {
+      "source": "jeffallan/claude-skills",
+      "sourceType": "github",
+      "computedHash": "46097125b4fd92bfffc3aaace17f9143440335173095a5a880c94a349ad15f7d"
+    }
+  }
+}

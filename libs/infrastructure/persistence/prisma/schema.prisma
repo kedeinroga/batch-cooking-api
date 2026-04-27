@@ -1,0 +1,158 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum OrderStatus {
+  DRAFT
+  PENDING_PAYMENT
+  CONFIRMED
+  DELIVERED
+  CANCELLED
+}
+
+enum MealType {
+  LUNCH
+  DINNER
+}
+
+enum DishType {
+  MAIN
+  SIDE
+  DESSERT
+  DRINK
+}
+
+enum UserRole {
+  CLIENT
+  STAFF
+  ADMIN
+}
+
+model UserProfile {
+  id                String            @id
+  role              UserRole          @default(CLIENT)
+  deliveryAddresses DeliveryAddress[]
+  orders            Order[]
+
+  @@map("user_profiles")
+}
+
+model DeliveryZone {
+  id           String            @id @default(uuid())
+  districtName String            @map("district_name")
+  isActive     Boolean           @default(true) @map("is_active")
+  addresses    DeliveryAddress[]
+
+  @@map("delivery_zones")
+}
+
+model DeliveryAddress {
+  id          String       @id @default(uuid())
+  userId      String       @map("user_id")
+  label       String
+  addressLine String       @map("address_line")
+  districtId  String       @map("district_id")
+  reference   String?
+  user        UserProfile  @relation(fields: [userId], references: [id])
+  zone        DeliveryZone @relation(fields: [districtId], references: [id])
+  orders      Order[]
+
+  @@map("delivery_addresses")
+}
+
+model WeeklyConfig {
+  id                 String          @id @default(uuid())
+  weekIdentifier     String          @unique @map("week_identifier")
+  startDate          DateTime        @map("start_date")
+  maxOrders          Int             @map("max_orders")
+  discountPercentage Decimal         @default(0) @map("discount_percentage")
+  isActive           Boolean         @default(false) @map("is_active")
+  dishes             CatalogDish[]
+  packages           WeeklyPackage[]
+
+  @@map("weekly_configs")
+}
+
+model CatalogDish {
+  id               String              @id @default(uuid())
+  weekIdentifier   String              @map("week_identifier")
+  name             String
+  type             DishType
+  price            Decimal
+  weeklyConfig     WeeklyConfig        @relation(fields: [weekIdentifier], references: [weekIdentifier])
+  orderItems       OrderItem[]         @relation("OrderItemDish")
+  orderItemSides   OrderItem[]         @relation("OrderItemSide")
+  packageItems     WeeklyPackageItem[] @relation("PackageItemDish")
+  packageItemSides WeeklyPackageItem[] @relation("PackageItemSide")
+
+  @@map("catalog_dishes")
+}
+
+model WeeklyPackage {
+  id                 String              @id @default(uuid())
+  weekIdentifier     String              @map("week_identifier")
+  name               String
+  description        String?
+  discountPercentage Decimal             @map("discount_percentage")
+  weeklyConfig       WeeklyConfig        @relation(fields: [weekIdentifier], references: [weekIdentifier])
+  items              WeeklyPackageItem[]
+  orders             Order[]
+
+  @@map("weekly_packages")
+}
+
+model WeeklyPackageItem {
+  id        String        @id @default(uuid())
+  packageId String        @map("package_id")
+  dayOfWeek Int           @map("day_of_week")
+  mealType  MealType      @map("meal_type")
+  dishId    String        @map("dish_id")
+  sideId    String?       @map("side_id")
+  package   WeeklyPackage @relation(fields: [packageId], references: [id])
+  dish      CatalogDish   @relation("PackageItemDish", fields: [dishId], references: [id])
+  side      CatalogDish?  @relation("PackageItemSide", fields: [sideId], references: [id])
+
+  @@map("weekly_package_items")
+}
+
+model Order {
+  id                String          @id @default(uuid())
+  userId            String          @map("user_id")
+  weekIdentifier    String          @map("week_identifier")
+  deliveryAddressId String          @map("delivery_address_id")
+  sourcePackageId   String?         @map("source_package_id")
+  subtotal          Decimal?
+  discountApplied   Decimal?        @map("discount_applied")
+  total             Decimal?
+  status            OrderStatus     @default(DRAFT)
+  ticketNumber      String?         @unique @map("ticket_number")
+  voucherPath       String?         @map("voucher_path")
+  deliveredAt       DateTime?       @map("delivered_at")
+  createdAt         DateTime        @default(now()) @map("created_at")
+  updatedAt         DateTime        @updatedAt @map("updated_at")
+  user              UserProfile     @relation(fields: [userId], references: [id])
+  deliveryAddress   DeliveryAddress @relation(fields: [deliveryAddressId], references: [id])
+  sourcePackage     WeeklyPackage?  @relation(fields: [sourcePackageId], references: [id])
+  items             OrderItem[]
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id        String       @id @default(uuid())
+  orderId   String       @map("order_id")
+  dayOfWeek Int          @map("day_of_week")
+  mealType  MealType     @map("meal_type")
+  dishId    String       @map("dish_id")
+  sideId    String?      @map("side_id")
+  order     Order        @relation(fields: [orderId], references: [id])
+  dish      CatalogDish  @relation("OrderItemDish", fields: [dishId], references: [id])
+  side      CatalogDish? @relation("OrderItemSide", fields: [sideId], references: [id])
+
+  @@unique([orderId, dayOfWeek, mealType])
+  @@map("order_items")
+}
