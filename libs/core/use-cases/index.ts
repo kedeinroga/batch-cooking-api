@@ -29,6 +29,7 @@ export * from './operations/list-pending-payment-orders.use-case';
 
 // Admin
 export * from './admin/upsert-weekly-config.use-case';
+export * from './admin/get-weekly-config.use-case';
 export * from './admin/toggle-delivery-zone.use-case';
 export * from './admin/cleanup-expired-vouchers.use-case';
 

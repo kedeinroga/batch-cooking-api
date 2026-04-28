@@ -232,7 +232,10 @@ export class PrismaOrderRepository extends OrderRepository {
 
   async deleteById(id: string): Promise<void> {
     try {
-      await this.prisma.order.delete({ where: { id } });
+      await this.prisma.$transaction([
+        this.prisma.orderItem.deleteMany({ where: { orderId: id } }),
+        this.prisma.order.delete({ where: { id } }),
+      ]);
     } catch (err) {
       throw new DataSourceException(
         `Failed to delete order: ${(err as Error).message}`,

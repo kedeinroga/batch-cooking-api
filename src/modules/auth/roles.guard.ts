@@ -30,10 +30,10 @@ export class RolesGuard implements CanActivate {
 
     if (!profile) throw new ForbiddenException('User profile not found');
 
-    // ADMIN inherits all STAFF permissions
+    // ADMIN inherits all STAFF and CLIENT permissions
     const effectiveRoles =
       profile.role === UserRole.ADMIN
-        ? [UserRole.ADMIN, UserRole.STAFF]
+        ? [UserRole.ADMIN, UserRole.STAFF, UserRole.CLIENT]
         : [profile.role as UserRole];
 
     if (!requiredRoles.some((r) => effectiveRoles.includes(r))) {

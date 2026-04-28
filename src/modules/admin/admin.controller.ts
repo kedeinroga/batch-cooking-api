@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Get,
   HttpCode,
   HttpStatus,
   Param,
@@ -18,6 +19,7 @@ import { Roles } from '../auth/roles.decorator';
 import { UserRole } from '@batch-cooking/domain';
 import {
   UpsertWeeklyConfigUseCase,
+  GetWeeklyConfigUseCase,
   ToggleDeliveryZoneUseCase,
   CleanupExpiredVouchersUseCase,
 } from '@batch-cooking/use-cases';
@@ -32,9 +34,26 @@ import { ToggleDeliveryZoneRequestDto } from './dto/toggle-delivery-zone.request
 export class AdminController {
   constructor(
     private readonly upsertWeeklyConfigUseCase: UpsertWeeklyConfigUseCase,
+    private readonly getWeeklyConfigUseCase: GetWeeklyConfigUseCase,
     private readonly toggleDeliveryZoneUseCase: ToggleDeliveryZoneUseCase,
     private readonly cleanupExpiredVouchersUseCase: CleanupExpiredVouchersUseCase,
   ) {}
+
+  @ApiOperation({
+    summary: 'Get weekly config by week identifier (ADMIN)',
+    operationId: 'getWeeklyConfig',
+  })
+  @Roles(UserRole.ADMIN)
+  @Get('weekly-configs/:weekIdentifier')
+  getWeeklyConfig(
+    @Req() req: ICustomRequest,
+    @Param('weekIdentifier') weekIdentifier: string,
+  ) {
+    return this.getWeeklyConfigUseCase.execute({
+      weekIdentifier,
+      traceId: req.globalTraceId,
+    });
+  }
 
   @ApiOperation({
     summary: 'Create or update weekly config (ADMIN)',

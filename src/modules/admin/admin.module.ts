@@ -20,6 +20,7 @@ import {
 } from '@batch-cooking/domain-services';
 import {
   UpsertWeeklyConfigUseCase,
+  GetWeeklyConfigUseCase,
   ToggleDeliveryZoneUseCase,
   CleanupExpiredVouchersUseCase,
 } from '@batch-cooking/use-cases';
@@ -68,6 +69,11 @@ import { AdminController } from './admin.controller';
       provide: UpsertWeeklyConfigUseCase,
       useFactory: (w: WeeklyConfigRepository) =>
         new UpsertWeeklyConfigUseCase(w),
+      inject: [WeeklyConfigRepository],
+    },
+    {
+      provide: GetWeeklyConfigUseCase,
+      useFactory: (w: WeeklyConfigRepository) => new GetWeeklyConfigUseCase(w),
       inject: [WeeklyConfigRepository],
     },
     {
