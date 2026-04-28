@@ -1,4 +1,5 @@
 import { OrderItem } from '../../../core/domain/entities/order-item.entity';
+import { MealType } from '../../../core/domain/enums/meal-type.enum';
 import {
   OrderItemRepository,
   UpsertOrderItemInput,
@@ -58,6 +59,22 @@ export class PrismaOrderItemRepository extends OrderItemRepository {
     } catch (err) {
       throw new DataSourceException(
         `Failed to delete order items: ${(err as Error).message}`,
+      );
+    }
+  }
+
+  async deleteByDayAndMeal(
+    orderId: string,
+    dayOfWeek: number,
+    mealType: MealType,
+  ): Promise<void> {
+    try {
+      await this.prisma.orderItem.deleteMany({
+        where: { orderId, dayOfWeek, mealType },
+      });
+    } catch (err) {
+      throw new DataSourceException(
+        `Failed to delete order item: ${(err as Error).message}`,
       );
     }
   }

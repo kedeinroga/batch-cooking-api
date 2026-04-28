@@ -4,6 +4,8 @@ import {
   Delete,
   Get,
   Param,
+  ParseEnumPipe,
+  ParseIntPipe,
   ParseUUIDPipe,
   Patch,
   Post,
@@ -26,6 +28,7 @@ import { UserRole } from '@batch-cooking/domain';
 import {
   CreateOrderUseCase,
   UpsertDailySelectionUseCase,
+  RemoveOrderItemUseCase,
   ApplyWeeklyPackageUseCase,
   InitiateCheckoutUseCase,
   CancelOrderUseCase,
@@ -33,6 +36,7 @@ import {
   ListUserOrdersUseCase,
   GetOrderDetailUseCase,
 } from '@batch-cooking/use-cases';
+import { MealType } from '@batch-cooking/domain';
 import { ICustomRequest } from '../../shared/interfaces/request.interface';
 import { CreateOrderRequestDto } from './dto/create-order.request.dto';
 import { UpsertDailySelectionRequestDto } from './dto/upsert-daily-selection.request.dto';
@@ -46,6 +50,7 @@ export class OrdersController {
   constructor(
     private readonly createOrderUseCase: CreateOrderUseCase,
     private readonly upsertDailySelectionUseCase: UpsertDailySelectionUseCase,
+    private readonly removeOrderItemUseCase: RemoveOrderItemUseCase,
     private readonly applyWeeklyPackageUseCase: ApplyWeeklyPackageUseCase,
     private readonly initiateCheckoutUseCase: InitiateCheckoutUseCase,
     private readonly cancelOrderUseCase: CancelOrderUseCase,
@@ -120,6 +125,28 @@ export class OrdersController {
       userId: req.user.id,
       orderId,
       ...body,
+      traceId: req.globalTraceId,
+    });
+  }
+
+  @ApiOperation({
+    summary: 'Remove a single daily selection from a DRAFT order',
+    operationId: 'removeOrderItem',
+  })
+  @Roles(UserRole.CLIENT)
+  @Delete(':orderId/items/:day/:meal')
+  @HttpCode(HttpStatus.OK)
+  removeOrderItem(
+    @Req() req: ICustomRequest,
+    @Param('orderId', ParseUUIDPipe) orderId: string,
+    @Param('day', ParseIntPipe) day: number,
+    @Param('meal', new ParseEnumPipe(MealType)) meal: MealType,
+  ) {
+    return this.removeOrderItemUseCase.execute({
+      userId: req.user.id,
+      orderId,
+      dayOfWeek: day,
+      mealType: meal,
       traceId: req.globalTraceId,
     });
   }

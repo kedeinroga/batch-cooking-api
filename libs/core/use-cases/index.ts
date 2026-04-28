@@ -1,6 +1,7 @@
 // Orders
 export * from './orders/create-order.use-case';
 export * from './orders/upsert-daily-selection.use-case';
+export * from './orders/remove-order-item.use-case';
 export * from './orders/apply-weekly-package.use-case';
 export * from './orders/initiate-checkout.use-case';
 export * from './orders/cancel-order.use-case';

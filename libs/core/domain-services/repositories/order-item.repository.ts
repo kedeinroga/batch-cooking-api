@@ -13,6 +13,11 @@ export abstract class OrderItemRepository {
   abstract findByOrder(orderId: string): Promise<OrderItem[]>;
   abstract upsert(data: UpsertOrderItemInput): Promise<OrderItem>;
   abstract deleteByOrder(orderId: string): Promise<void>;
+  abstract deleteByDayAndMeal(
+    orderId: string,
+    dayOfWeek: number,
+    mealType: MealType,
+  ): Promise<void>;
   abstract replaceAll(
     orderId: string,
     items: UpsertOrderItemInput[],

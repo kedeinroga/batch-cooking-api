@@ -21,6 +21,7 @@ import {
 import {
   CreateOrderUseCase,
   UpsertDailySelectionUseCase,
+  RemoveOrderItemUseCase,
   ApplyWeeklyPackageUseCase,
   InitiateCheckoutUseCase,
   CancelOrderUseCase,
@@ -85,6 +86,15 @@ import { OrdersController } from './orders.controller';
         i: OrderItemRepository,
         w: WeeklyConfigRepository,
       ) => new UpsertDailySelectionUseCase(o, i, w),
+      inject: [OrderRepository, OrderItemRepository, WeeklyConfigRepository],
+    },
+    {
+      provide: RemoveOrderItemUseCase,
+      useFactory: (
+        o: OrderRepository,
+        i: OrderItemRepository,
+        w: WeeklyConfigRepository,
+      ) => new RemoveOrderItemUseCase(o, i, w),
       inject: [OrderRepository, OrderItemRepository, WeeklyConfigRepository],
     },
     {
