@@ -43,7 +43,7 @@ export class CatalogController {
     summary: 'Get the weekly menu (dishes + packages)',
     operationId: 'getWeeklyMenu',
   })
-  @Roles(UserRole.CLIENT)
+  @Roles(UserRole.CLIENT, UserRole.STAFF)
   @Get(':weekIdentifier')
   getWeeklyMenu(
     @Req() req: ICustomRequest,

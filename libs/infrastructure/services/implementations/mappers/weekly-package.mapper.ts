@@ -7,13 +7,20 @@ import { WeeklyPackageItem } from '../../../../core/domain/entities/weekly-packa
 import { MealType } from '../../../../core/domain/enums/meal-type.enum';
 
 export class WeeklyPackageMapper {
-  static toDomain(record: PrismaWeeklyPackage): WeeklyPackage {
+  static toDomain(
+    record: PrismaWeeklyPackage & {
+      items?: PrismaWeeklyPackageItem[];
+    },
+  ): WeeklyPackage {
     return {
       id: record.id,
       weekIdentifier: record.weekIdentifier,
       name: record.name,
       description: record.description ?? undefined,
       discountPercentage: record.discountPercentage.toNumber(),
+      ...(record.items && {
+        items: record.items.map(WeeklyPackageMapper.itemToDomain),
+      }),
     };
   }
 

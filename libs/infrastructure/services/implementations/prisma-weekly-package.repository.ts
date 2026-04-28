@@ -31,6 +31,7 @@ export class PrismaWeeklyPackageRepository extends WeeklyPackageRepository {
     try {
       const records = await this.prisma.weeklyPackage.findMany({
         where: { weekIdentifier },
+        include: { items: true },
       });
       return records.map(WeeklyPackageMapper.toDomain);
     } catch (err) {

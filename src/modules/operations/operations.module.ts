@@ -7,12 +7,14 @@ import {
   GcpStorageService,
   PrismaOrderRepository,
   PrismaUserProfileRepository,
+  PrismaCatalogDishRepository,
   GcpVoucherStorageService,
 } from '@batch-cooking/infrastructure';
 import {
   OrderRepository,
   StorageService,
   UserProfileRepository,
+  CatalogDishRepository,
 } from '@batch-cooking/domain-services';
 import {
   MarkOrderAsDeliveredUseCase,
@@ -42,6 +44,11 @@ import { OperationsController } from './operations.controller';
       inject: [PrismaService],
     },
     {
+      provide: CatalogDishRepository,
+      useFactory: (p: PrismaService) => new PrismaCatalogDishRepository(p),
+      inject: [PrismaService],
+    },
+    {
       provide: StorageService,
       useFactory: (g: GcpStorageService) => new GcpVoucherStorageService(g),
       inject: [GcpStorageService],
@@ -65,9 +72,9 @@ import { OperationsController } from './operations.controller';
     },
     {
       provide: GenerateProductionReportUseCase,
-      useFactory: (o: OrderRepository) =>
-        new GenerateProductionReportUseCase(o),
-      inject: [OrderRepository],
+      useFactory: (o: OrderRepository, c: CatalogDishRepository) =>
+        new GenerateProductionReportUseCase(o, c),
+      inject: [OrderRepository, CatalogDishRepository],
     },
     {
       provide: GetDeliveryListUseCase,

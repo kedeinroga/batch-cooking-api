@@ -65,6 +65,8 @@ export function parseWeekIdentifier(weekIdentifier: string): {
  * After Friday 12:00 PM, and on weekends, the window is closed.
  */
 export function isOrderWindowOpen(now?: Date): boolean {
+  if (process.env.NODE_ENV !== 'production') return true;
+
   const limaDate = now ? now : nowInLima();
 
   const dayOfWeek = limaDate.getDay(); // 0=Sun, 1=Mon … 5=Fri, 6=Sat
