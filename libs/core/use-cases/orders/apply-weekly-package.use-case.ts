@@ -12,6 +12,7 @@ import {
   OrderItemRepository,
   UpsertOrderItemInput,
 } from '../../domain-services/repositories/order-item.repository';
+import { computeSubtotal, calculateDiscount } from '../../../shared/discount.utils';
 
 export interface ApplyWeeklyPackageInput {
   userId: string;
@@ -57,8 +58,26 @@ export class ApplyWeeklyPackageUseCase {
 
     await this.orderItemRepository.replaceAll(input.orderId, items);
 
+    // Recalculate totals with the package discount
+    const orderWithItems = await this.orderRepository.findByIdWithItems(
+      input.orderId,
+    );
+    const subtotal = computeSubtotal(
+      (orderWithItems?.items ?? []).map((i) => ({
+        dishPrice: (i as any).dishPrice ?? 0,
+        sidePrice: (i as any).sidePrice ?? 0,
+      })),
+    );
+    const { discountAmount, total } = calculateDiscount(
+      subtotal,
+      pkg.discountPercentage,
+    );
+
     return this.orderRepository.updateStatus(input.orderId, OrderStatus.DRAFT, {
       sourcePackageId: input.packageId,
+      subtotal,
+      discountApplied: discountAmount,
+      total,
     });
   }
 }

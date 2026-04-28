@@ -80,9 +80,12 @@ import { OrdersController } from './orders.controller';
     },
     {
       provide: UpsertDailySelectionUseCase,
-      useFactory: (o: OrderRepository, i: OrderItemRepository) =>
-        new UpsertDailySelectionUseCase(o, i),
-      inject: [OrderRepository, OrderItemRepository],
+      useFactory: (
+        o: OrderRepository,
+        i: OrderItemRepository,
+        w: WeeklyConfigRepository,
+      ) => new UpsertDailySelectionUseCase(o, i, w),
+      inject: [OrderRepository, OrderItemRepository, WeeklyConfigRepository],
     },
     {
       provide: ApplyWeeklyPackageUseCase,

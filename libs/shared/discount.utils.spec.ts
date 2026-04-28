@@ -1,4 +1,22 @@
-import { calculateDiscount, resolveDiscountPercentage } from './discount.utils';
+import { computeSubtotal, calculateDiscount, resolveDiscountPercentage } from './discount.utils';
+
+describe('computeSubtotal', () => {
+  it('returns 0 for empty items', () => {
+    expect(computeSubtotal([])).toBe(0);
+  });
+
+  it('sums dish and side prices across items', () => {
+    const items = [
+      { dishPrice: 20, sidePrice: 5 },
+      { dishPrice: 18, sidePrice: 0 },
+    ];
+    expect(computeSubtotal(items)).toBe(43);
+  });
+
+  it('handles items with no side (sidePrice 0)', () => {
+    expect(computeSubtotal([{ dishPrice: 25, sidePrice: 0 }])).toBe(25);
+  });
+});
 
 describe('calculateDiscount', () => {
   it('returns zero discount and full subtotal when percentage is 0', () => {

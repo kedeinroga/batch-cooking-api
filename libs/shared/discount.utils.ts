@@ -1,4 +1,14 @@
 /**
+ * Sums item prices to compute the order subtotal.
+ * dishPrice and sidePrice come from findByIdWithItems (joined via catalog_dishes).
+ */
+export function computeSubtotal(
+  items: { dishPrice: number; sidePrice: number }[],
+): number {
+  return items.reduce((sum, i) => sum + i.dishPrice + i.sidePrice, 0);
+}
+
+/**
  * Calculates the discount amount and final total given a subtotal and a percentage.
  * No rounding — currency is PEN and the PRD explicitly forbids rounding.
  *
