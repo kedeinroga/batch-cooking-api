@@ -129,27 +129,25 @@ export class PrismaOrderRepository extends OrderRepository {
     extra?: Partial<Order>,
   ): Promise<Order> {
     try {
+      const e = extra ?? {};
       const record = await this.prisma.order.update({
         where: { id },
         data: {
           status,
-          ...(extra?.sourcePackageId !== undefined && {
-            sourcePackageId: extra.sourcePackageId ?? null,
+          ...('sourcePackageId' in e && {
+            sourcePackageId: e.sourcePackageId ?? null,
           }),
-          ...(extra?.voucherPath !== undefined && {
-            voucherPath: extra.voucherPath ?? null,
+          ...('appliedPackageId' in e && {
+            appliedPackageId: e.appliedPackageId ?? null,
           }),
-          ...(extra?.ticketNumber !== undefined && {
-            ticketNumber: extra.ticketNumber,
+          ...('voucherPath' in e && {
+            voucherPath: e.voucherPath ?? null,
           }),
-          ...(extra?.subtotal !== undefined && { subtotal: extra.subtotal }),
-          ...(extra?.discountApplied !== undefined && {
-            discountApplied: extra.discountApplied,
-          }),
-          ...(extra?.total !== undefined && { total: extra.total }),
-          ...(extra?.deliveredAt !== undefined && {
-            deliveredAt: extra.deliveredAt,
-          }),
+          ...('ticketNumber' in e && { ticketNumber: e.ticketNumber }),
+          ...('subtotal' in e && { subtotal: e.subtotal }),
+          ...('discountApplied' in e && { discountApplied: e.discountApplied }),
+          ...('total' in e && { total: e.total }),
+          ...('deliveredAt' in e && { deliveredAt: e.deliveredAt }),
         },
       });
       return OrderMapper.toDomain(record);
@@ -205,24 +203,23 @@ export class PrismaOrderRepository extends OrderRepository {
       const record = await client.order.update({
         where: { id },
         data: {
-          ...(data.status !== undefined && { status: data.status }),
-          ...(data.sourcePackageId !== undefined && {
+          ...('status' in data && { status: data.status }),
+          ...('sourcePackageId' in data && {
             sourcePackageId: data.sourcePackageId ?? null,
           }),
-          ...(data.voucherPath !== undefined && {
+          ...('appliedPackageId' in data && {
+            appliedPackageId: data.appliedPackageId ?? null,
+          }),
+          ...('voucherPath' in data && {
             voucherPath: data.voucherPath ?? null,
           }),
-          ...(data.ticketNumber !== undefined && {
-            ticketNumber: data.ticketNumber,
-          }),
-          ...(data.subtotal !== undefined && { subtotal: data.subtotal }),
-          ...(data.discountApplied !== undefined && {
+          ...('ticketNumber' in data && { ticketNumber: data.ticketNumber }),
+          ...('subtotal' in data && { subtotal: data.subtotal }),
+          ...('discountApplied' in data && {
             discountApplied: data.discountApplied,
           }),
-          ...(data.total !== undefined && { total: data.total }),
-          ...(data.deliveredAt !== undefined && {
-            deliveredAt: data.deliveredAt,
-          }),
+          ...('total' in data && { total: data.total }),
+          ...('deliveredAt' in data && { deliveredAt: data.deliveredAt }),
         },
       });
       return OrderMapper.toDomain(record);

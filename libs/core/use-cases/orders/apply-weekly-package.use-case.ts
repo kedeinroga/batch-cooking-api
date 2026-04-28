@@ -8,11 +8,12 @@ import {
 } from '../../domain/exceptions/batch-cooking.exceptions';
 import { OrderRepository } from '../../domain-services/repositories/order.repository';
 import { WeeklyPackageRepository } from '../../domain-services/repositories/weekly-package.repository';
+import { WeeklyConfigRepository } from '../../domain-services/repositories/weekly-config.repository';
 import {
   OrderItemRepository,
   UpsertOrderItemInput,
 } from '../../domain-services/repositories/order-item.repository';
-import { computeSubtotal, calculateDiscount } from '../../../shared/discount.utils';
+import { recalculateOrderTotals } from './recalculate-order-totals';
 
 export interface ApplyWeeklyPackageInput {
   userId: string;
@@ -26,6 +27,7 @@ export class ApplyWeeklyPackageUseCase {
     private readonly orderRepository: OrderRepository,
     private readonly weeklyPackageRepository: WeeklyPackageRepository,
     private readonly orderItemRepository: OrderItemRepository,
+    private readonly weeklyConfigRepository: WeeklyConfigRepository,
   ) {}
 
   async execute(input: ApplyWeeklyPackageInput): Promise<Order> {
@@ -58,26 +60,21 @@ export class ApplyWeeklyPackageUseCase {
 
     await this.orderItemRepository.replaceAll(input.orderId, items);
 
-    // Recalculate totals with the package discount
-    const orderWithItems = await this.orderRepository.findByIdWithItems(
-      input.orderId,
-    );
-    const subtotal = computeSubtotal(
-      (orderWithItems?.items ?? []).map((i) => ({
-        dishPrice: (i as any).dishPrice ?? 0,
-        sidePrice: (i as any).sidePrice ?? 0,
-      })),
-    );
-    const { discountAmount, total } = calculateDiscount(
-      subtotal,
-      pkg.discountPercentage,
-    );
-
-    return this.orderRepository.updateStatus(input.orderId, OrderStatus.DRAFT, {
+    // Set sourcePackageId and appliedPackageId so recalculate picks up the package discount.
+    // appliedPackageId is never cleared — it remembers which package was applied even after modifications.
+    await this.orderRepository.updateStatus(input.orderId, OrderStatus.DRAFT, {
       sourcePackageId: input.packageId,
-      subtotal,
-      discountApplied: discountAmount,
-      total,
+      appliedPackageId: input.packageId,
     });
+
+    // sourcePackageId is set → package discount applies
+    return recalculateOrderTotals(
+      input.orderId,
+      order.weekIdentifier,
+      input.packageId,
+      pkg.discountPercentage,
+      this.orderRepository,
+      this.weeklyConfigRepository,
+    );
   }
 }

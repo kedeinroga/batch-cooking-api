@@ -10,6 +10,7 @@ export class OrderMapper {
       weekIdentifier: record.weekIdentifier,
       deliveryAddressId: record.deliveryAddressId,
       sourcePackageId: record.sourcePackageId ?? undefined,
+      appliedPackageId: record.appliedPackageId ?? undefined,
       subtotal: record.subtotal?.toNumber() ?? 0,
       discountApplied: record.discountApplied?.toNumber() ?? 0,
       total: record.total?.toNumber() ?? 0,

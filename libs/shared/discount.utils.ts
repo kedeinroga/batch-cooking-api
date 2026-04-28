@@ -26,24 +26,54 @@ export function calculateDiscount(
 }
 
 /**
- * Determines which discount percentage to apply based on the order's origin.
+ * Returns true when all 5 weekdays (1–5) have at least one LUNCH item.
+ * Required to qualify for the general weekly discount.
+ */
+export function hasAllLunches(
+  items: { dayOfWeek: number; mealType: string }[],
+): boolean {
+  return [1, 2, 3, 4, 5].every((day) =>
+    items.some((i) => i.dayOfWeek === day && i.mealType === 'LUNCH'),
+  );
+}
+
+/**
+ * Returns true when every order item matches a package item exactly
+ * (same dayOfWeek, mealType, dishId, sideId) and the counts are equal.
+ * Used to determine whether to restore the package discount after an item change.
+ */
+export function itemsMatchPackage(
+  orderItems: { dayOfWeek: number; mealType: string; dishId: string; sideId?: string | null }[],
+  packageItems: { dayOfWeek: number; mealType: string; dishId: string; sideId?: string | null }[],
+): boolean {
+  if (orderItems.length !== packageItems.length) return false;
+  const key = (i: { dayOfWeek: number; mealType: string; dishId: string; sideId?: string | null }) =>
+    `${i.dayOfWeek}|${i.mealType}|${i.dishId}|${i.sideId ?? ''}`;
+  const pkgKeys = new Set(packageItems.map(key));
+  return orderItems.every((i) => pkgKeys.has(key(i)));
+}
+
+/**
+ * Determines which discount percentage to apply.
  *
  * Rules (PRD §5.4):
- * - Package with NO modifications  → package discount
- * - Package WITH modifications      → general (weekly config) discount
- * - Built manually (no package)     → general (weekly config) discount
+ * - Package with NO modifications  → package discount (always)
+ * - Package WITH modifications      → general discount only if all 5 lunches present, else 0
+ * - Built manually                  → general discount only if all 5 lunches present, else 0
  *
- * @param sourcePackageId       - null if manual or if package was modified
- * @param packageDiscountPct    - discount from the original package
- * @param generalDiscountPct    - discount from weekly_configs
+ * @param sourcePackageId    - null/undefined if manual or package was modified
+ * @param packageDiscountPct - discount from the original package
+ * @param generalDiscountPct - discount from weekly_configs
+ * @param items              - current order items (checked for lunch completeness)
  */
 export function resolveDiscountPercentage(
   sourcePackageId: string | undefined | null,
   packageDiscountPct: number,
   generalDiscountPct: number,
+  items: { dayOfWeek: number; mealType: string }[],
 ): number {
   if (sourcePackageId) {
     return packageDiscountPct;
   }
-  return generalDiscountPct;
+  return hasAllLunches(items) ? generalDiscountPct : 0;
 }

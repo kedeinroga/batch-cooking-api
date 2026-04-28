@@ -9,10 +9,9 @@ import {
 import { OrderRepository } from '../../domain-services/repositories/order.repository';
 import { OrderItemRepository } from '../../domain-services/repositories/order-item.repository';
 import { WeeklyConfigRepository } from '../../domain-services/repositories/weekly-config.repository';
-import {
-  computeSubtotal,
-  calculateDiscount,
-} from '../../../shared/discount.utils';
+import { WeeklyPackageRepository } from '../../domain-services/repositories/weekly-package.repository';
+import { itemsMatchPackage } from '../../../shared/discount.utils';
+import { recalculateOrderTotals } from './recalculate-order-totals';
 
 export interface UpsertDailySelectionInput {
   userId: string;
@@ -29,6 +28,7 @@ export class UpsertDailySelectionUseCase {
     private readonly orderRepository: OrderRepository,
     private readonly orderItemRepository: OrderItemRepository,
     private readonly weeklyConfigRepository: WeeklyConfigRepository,
+    private readonly weeklyPackageRepository: WeeklyPackageRepository,
   ) {}
 
   async execute(input: UpsertDailySelectionInput): Promise<OrderItem> {
@@ -41,15 +41,6 @@ export class UpsertDailySelectionUseCase {
     if (order.status !== OrderStatus.DRAFT)
       throw new OrderNotEditableException('Order is not in DRAFT status');
 
-    // If the order came from a package, modifying an item detaches it from the package
-    if (order.sourcePackageId) {
-      await this.orderRepository.updateStatus(
-        input.orderId,
-        OrderStatus.DRAFT,
-        { sourcePackageId: undefined },
-      );
-    }
-
     const item = await this.orderItemRepository.upsert({
       orderId: input.orderId,
       dayOfWeek: input.dayOfWeek,
@@ -58,30 +49,34 @@ export class UpsertDailySelectionUseCase {
       sideId: input.sideId,
     });
 
-    // Recalculate totals so the DRAFT order reflects the current selection.
-    // sourcePackageId is always null here (cleared above or was never set),
-    // so the general weekly discount applies.
-    const orderWithItems = await this.orderRepository.findByIdWithItems(
+    // Determine if the order still matches the originally applied package.
+    // If it does, restore sourcePackageId so the package discount applies again.
+    let newSourcePackageId: string | null = null;
+    let newPackageDiscountPct = 0;
+
+    if (order.appliedPackageId) {
+      const pkg = await this.weeklyPackageRepository.findWithItems(
+        order.appliedPackageId,
+      );
+      if (pkg) {
+        const fresh = await this.orderRepository.findByIdWithItems(
+          input.orderId,
+        );
+        if (itemsMatchPackage(fresh?.items ?? [], pkg.items)) {
+          newSourcePackageId = order.appliedPackageId;
+          newPackageDiscountPct = pkg.discountPercentage;
+        }
+      }
+    }
+
+    await recalculateOrderTotals(
       input.orderId,
-    );
-    const subtotal = computeSubtotal(
-      (orderWithItems?.items ?? []).map((i) => ({
-        dishPrice: (i as any).dishPrice ?? 0,
-        sidePrice: (i as any).sidePrice ?? 0,
-      })),
-    );
-    const config = await this.weeklyConfigRepository.findByWeekIdentifier(
       order.weekIdentifier,
+      newSourcePackageId,
+      newPackageDiscountPct,
+      this.orderRepository,
+      this.weeklyConfigRepository,
     );
-    const { discountAmount, total } = calculateDiscount(
-      subtotal,
-      config?.discountPercentage ?? 0,
-    );
-    await this.orderRepository.updateStatus(input.orderId, OrderStatus.DRAFT, {
-      subtotal,
-      discountApplied: discountAmount,
-      total,
-    });
 
     return item;
   }

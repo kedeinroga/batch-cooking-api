@@ -9,10 +9,9 @@ import {
 import { OrderRepository } from '../../domain-services/repositories/order.repository';
 import { OrderItemRepository } from '../../domain-services/repositories/order-item.repository';
 import { WeeklyConfigRepository } from '../../domain-services/repositories/weekly-config.repository';
-import {
-  computeSubtotal,
-  calculateDiscount,
-} from '../../../shared/discount.utils';
+import { WeeklyPackageRepository } from '../../domain-services/repositories/weekly-package.repository';
+import { itemsMatchPackage } from '../../../shared/discount.utils';
+import { recalculateOrderTotals } from './recalculate-order-totals';
 
 export interface RemoveOrderItemInput {
   userId: string;
@@ -27,6 +26,7 @@ export class RemoveOrderItemUseCase {
     private readonly orderRepository: OrderRepository,
     private readonly orderItemRepository: OrderItemRepository,
     private readonly weeklyConfigRepository: WeeklyConfigRepository,
+    private readonly weeklyPackageRepository: WeeklyPackageRepository,
   ) {}
 
   async execute(input: RemoveOrderItemInput): Promise<Order> {
@@ -39,43 +39,40 @@ export class RemoveOrderItemUseCase {
     if (order.status !== OrderStatus.DRAFT)
       throw new OrderNotEditableException('Order is not in DRAFT status');
 
-    // Removing an item detaches the order from its package
-    if (order.sourcePackageId) {
-      await this.orderRepository.updateStatus(
-        input.orderId,
-        OrderStatus.DRAFT,
-        { sourcePackageId: undefined },
-      );
-    }
-
     await this.orderItemRepository.deleteByDayAndMeal(
       input.orderId,
       input.dayOfWeek,
       input.mealType,
     );
 
-    // Recalculate totals with general weekly discount (sourcePackageId is now null)
-    const orderWithItems = await this.orderRepository.findByIdWithItems(
-      input.orderId,
-    );
-    const subtotal = computeSubtotal(
-      (orderWithItems?.items ?? []).map((i) => ({
-        dishPrice: (i as any).dishPrice ?? 0,
-        sidePrice: (i as any).sidePrice ?? 0,
-      })),
-    );
-    const config = await this.weeklyConfigRepository.findByWeekIdentifier(
-      order.weekIdentifier,
-    );
-    const { discountAmount, total } = calculateDiscount(
-      subtotal,
-      config?.discountPercentage ?? 0,
-    );
+    // A removed item almost never leaves the order matching the package, but we
+    // run the same comparison logic for symmetry (e.g. removing a dinner item
+    // that was not in the package still leaves lunches intact).
+    let newSourcePackageId: string | null = null;
+    let newPackageDiscountPct = 0;
 
-    return this.orderRepository.updateStatus(input.orderId, OrderStatus.DRAFT, {
-      subtotal,
-      discountApplied: discountAmount,
-      total,
-    });
+    if (order.appliedPackageId) {
+      const pkg = await this.weeklyPackageRepository.findWithItems(
+        order.appliedPackageId,
+      );
+      if (pkg) {
+        const fresh = await this.orderRepository.findByIdWithItems(
+          input.orderId,
+        );
+        if (itemsMatchPackage(fresh?.items ?? [], pkg.items)) {
+          newSourcePackageId = order.appliedPackageId;
+          newPackageDiscountPct = pkg.discountPercentage;
+        }
+      }
+    }
+
+    return recalculateOrderTotals(
+      input.orderId,
+      order.weekIdentifier,
+      newSourcePackageId,
+      newPackageDiscountPct,
+      this.orderRepository,
+      this.weeklyConfigRepository,
+    );
   }
 }

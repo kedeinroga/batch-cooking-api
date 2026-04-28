@@ -100,7 +100,8 @@ model WeeklyPackage {
   discountPercentage Decimal             @map("discount_percentage")
   weeklyConfig       WeeklyConfig        @relation(fields: [weekIdentifier], references: [weekIdentifier])
   items              WeeklyPackageItem[]
-  orders             Order[]
+  sourceOrders       Order[]             @relation("SourcePackage")
+  appliedOrders      Order[]             @relation("AppliedPackage")
 
   @@map("weekly_packages")
 }
@@ -125,6 +126,7 @@ model Order {
   weekIdentifier    String          @map("week_identifier")
   deliveryAddressId String          @map("delivery_address_id")
   sourcePackageId   String?         @map("source_package_id")
+  appliedPackageId  String?         @map("applied_package_id")
   subtotal          Decimal?
   discountApplied   Decimal?        @map("discount_applied")
   total             Decimal?
@@ -136,7 +138,8 @@ model Order {
   updatedAt         DateTime        @updatedAt @map("updated_at")
   user              UserProfile     @relation(fields: [userId], references: [id])
   deliveryAddress   DeliveryAddress @relation(fields: [deliveryAddressId], references: [id])
-  sourcePackage     WeeklyPackage?  @relation(fields: [sourcePackageId], references: [id])
+  sourcePackage     WeeklyPackage?  @relation("SourcePackage", fields: [sourcePackageId], references: [id])
+  appliedPackage    WeeklyPackage?  @relation("AppliedPackage", fields: [appliedPackageId], references: [id])
   items             OrderItem[]
 
   @@map("orders")

@@ -103,6 +103,7 @@ export class InitiateCheckoutUseCase {
           order.sourcePackageId,
           packageDiscountPct,
           config.discountPercentage,
+          order.items!,
         );
         const { discountAmount, total } = calculateDiscount(
           subtotal,

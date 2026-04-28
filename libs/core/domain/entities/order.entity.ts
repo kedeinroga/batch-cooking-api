@@ -7,6 +7,7 @@ export class Order {
   weekIdentifier: string;
   deliveryAddressId: string;
   sourcePackageId?: string;
+  appliedPackageId?: string;
   subtotal: number;
   discountApplied: number;
   total: number;
