@@ -2,6 +2,7 @@ import { CatalogDish } from '../../../core/domain/entities/catalog-dish.entity';
 import {
   CatalogDishRepository,
   CreateCatalogDishInput,
+  UpdateCatalogDishInput,
 } from '../../../core/domain-services/repositories/catalog-dish.repository';
 import { DataSourceException } from '../../../core/domain/exceptions/batch-cooking.exceptions';
 import { PrismaService } from '../custom/prisma.service';
@@ -59,6 +60,20 @@ export class PrismaCatalogDishRepository extends CatalogDishRepository {
     } catch (err) {
       throw new DataSourceException(
         `Failed to create catalog dish: ${(err as Error).message}`,
+      );
+    }
+  }
+
+  async update(id: string, data: UpdateCatalogDishInput): Promise<CatalogDish> {
+    try {
+      const record = await this.prisma.catalogDish.update({
+        where: { id },
+        data,
+      });
+      return CatalogDishMapper.toDomain(record);
+    } catch (err) {
+      throw new DataSourceException(
+        `Failed to update catalog dish: ${(err as Error).message}`,
       );
     }
   }

@@ -19,6 +19,7 @@ export * from './catalog/create-catalog-dish.use-case';
 export * from './catalog/get-weekly-menu.use-case';
 export * from './catalog/upsert-weekly-package.use-case';
 export * from './catalog/delete-catalog-dish.use-case';
+export * from './catalog/update-catalog-dish.use-case';
 
 // Operations
 export * from './operations/mark-order-as-delivered.use-case';

@@ -19,6 +19,7 @@ import {
   GetWeeklyMenuUseCase,
   UpsertWeeklyPackageUseCase,
   DeleteCatalogDishUseCase,
+  UpdateCatalogDishUseCase,
 } from '@batch-cooking/use-cases';
 import { Reflector } from '@nestjs/core';
 import { SupabaseJwtGuard } from '../auth/supabase-jwt.guard';
@@ -84,6 +85,11 @@ import { CatalogController } from './catalog.controller';
     {
       provide: DeleteCatalogDishUseCase,
       useFactory: (c: CatalogDishRepository) => new DeleteCatalogDishUseCase(c),
+      inject: [CatalogDishRepository],
+    },
+    {
+      provide: UpdateCatalogDishUseCase,
+      useFactory: (c: CatalogDishRepository) => new UpdateCatalogDishUseCase(c),
       inject: [CatalogDishRepository],
     },
   ],

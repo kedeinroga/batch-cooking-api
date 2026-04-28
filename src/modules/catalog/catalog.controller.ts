@@ -7,6 +7,7 @@ import {
   HttpStatus,
   Param,
   ParseUUIDPipe,
+  Patch,
   Post,
   Put,
   Req,
@@ -22,9 +23,11 @@ import {
   GetWeeklyMenuUseCase,
   UpsertWeeklyPackageUseCase,
   DeleteCatalogDishUseCase,
+  UpdateCatalogDishUseCase,
 } from '@batch-cooking/use-cases';
 import { ICustomRequest } from '../../shared/interfaces/request.interface';
 import { CreateCatalogDishRequestDto } from './dto/create-catalog-dish.request.dto';
+import { UpdateCatalogDishRequestDto } from './dto/update-catalog-dish.request.dto';
 import { UpsertWeeklyPackageRequestDto } from './dto/upsert-weekly-package.request.dto';
 
 @ApiTags('Catalog')
@@ -37,6 +40,7 @@ export class CatalogController {
     private readonly getWeeklyMenuUseCase: GetWeeklyMenuUseCase,
     private readonly upsertWeeklyPackageUseCase: UpsertWeeklyPackageUseCase,
     private readonly deleteCatalogDishUseCase: DeleteCatalogDishUseCase,
+    private readonly updateCatalogDishUseCase: UpdateCatalogDishUseCase,
   ) {}
 
   @ApiOperation({
@@ -82,6 +86,24 @@ export class CatalogController {
     @Body() body: UpsertWeeklyPackageRequestDto,
   ) {
     return this.upsertWeeklyPackageUseCase.execute({
+      ...body,
+      traceId: req.globalTraceId,
+    });
+  }
+
+  @ApiOperation({
+    summary: 'Update a catalog dish (STAFF)',
+    operationId: 'updateCatalogDish',
+  })
+  @Roles(UserRole.STAFF)
+  @Patch('dishes/:dishId')
+  updateCatalogDish(
+    @Req() req: ICustomRequest,
+    @Param('dishId', ParseUUIDPipe) dishId: string,
+    @Body() body: UpdateCatalogDishRequestDto,
+  ) {
+    return this.updateCatalogDishUseCase.execute({
+      dishId,
       ...body,
       traceId: req.globalTraceId,
     });
