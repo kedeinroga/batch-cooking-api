@@ -7,6 +7,17 @@ export interface CreateOrderInput {
   deliveryAddressId: string;
 }
 
+export interface DeliveryListItem {
+  orderId: string;
+  ticketNumber: string;
+  customerEmail: string;
+  addressLine: string;
+  district: string;
+  reference?: string;
+  status: OrderStatus;
+  total: number;
+}
+
 export abstract class OrderRepository {
   abstract create(data: CreateOrderInput): Promise<Order>;
   abstract findById(id: string): Promise<Order | null>;
@@ -19,6 +30,10 @@ export abstract class OrderRepository {
     weekIdentifier: string,
     statuses: OrderStatus[],
   ): Promise<Order[]>;
+  abstract findDeliveryItemsByWeek(
+    weekIdentifier: string,
+    statuses: OrderStatus[],
+  ): Promise<DeliveryListItem[]>;
   abstract updateStatus(
     id: string,
     status: OrderStatus,

@@ -4,6 +4,7 @@ import { OrderStatus } from '../../../core/domain/enums/order-status.enum';
 import {
   OrderRepository,
   CreateOrderInput,
+  DeliveryListItem,
 } from '../../../core/domain-services/repositories/order.repository';
 import { DataSourceException } from '../../../core/domain/exceptions/batch-cooking.exceptions';
 import { PrismaService } from '../custom/prisma.service';
@@ -259,6 +260,47 @@ export class PrismaOrderRepository extends OrderRepository {
     } catch (err) {
       throw new DataSourceException(
         `Failed to get next ticket sequential: ${(err as Error).message}`,
+      );
+    }
+  }
+
+  async findDeliveryItemsByWeek(
+    weekIdentifier: string,
+    statuses: OrderStatus[],
+  ): Promise<DeliveryListItem[]> {
+    try {
+      const records = await this.prisma.order.findMany({
+        where: { weekIdentifier, status: { in: statuses } },
+        include: {
+          deliveryAddress: { include: { zone: true } },
+        },
+        orderBy: { ticketNumber: 'asc' },
+      });
+
+      if (records.length === 0) return [];
+
+      const userIds = [...new Set(records.map((r) => r.userId))];
+      const emailRows = await this.prisma.$queryRawUnsafe<
+        { id: string; email: string }[]
+      >(
+        `SELECT id::text AS id, email FROM auth.users WHERE id::text = ANY($1::text[])`,
+        userIds,
+      );
+      const emailMap = new Map(emailRows.map((r) => [r.id, r.email]));
+
+      return records.map((r) => ({
+        orderId: r.id,
+        ticketNumber: r.ticketNumber ?? '',
+        customerEmail: emailMap.get(r.userId) ?? '',
+        addressLine: r.deliveryAddress.addressLine,
+        district: r.deliveryAddress.zone.districtName,
+        reference: r.deliveryAddress.reference ?? undefined,
+        status: r.status as unknown as OrderStatus,
+        total: r.total ? Number(r.total) : 0,
+      }));
+    } catch (err) {
+      throw new DataSourceException(
+        `Failed to find delivery items: ${(err as Error).message}`,
       );
     }
   }
