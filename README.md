@@ -1,98 +1,172 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Batch Cooking API
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+Backend para la plataforma de batch cooking en Lima, Perú. Los clientes programan almuerzos y cenas de lunes a viernes; el staff valida pagos y gestiona entregas; el admin configura la semana.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Stack
 
-## Description
+| Capa | Tecnología |
+|---|---|
+| Framework | NestJS 11 + TypeScript |
+| ORM | Prisma 7 |
+| Base de datos | Supabase (PostgreSQL) |
+| Auth | Supabase Auth (JWT) |
+| Storage | Google Cloud Storage (vouchers de pago) |
+| Deploy | Docker multi-stage → Cloud Run |
+| Secretos | Google Secret Manager (`PLATFORM_CONFIG`) |
+| Docs | Swagger (`/docs`) en entornos no-prod |
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Arquitectura
 
-## Project setup
+Clean Architecture hexagonal con tres capas principales:
 
-```bash
-$ npm install
+```
+libs/core/             → dominio puro (entidades, excepciones, use cases, repos abstractos)
+libs/infrastructure/   → implementaciones concretas (Prisma, GCS)
+libs/shared/           → utils transversales (semana ISO, hora Lima, descuentos, tickets)
+src/modules/           → NestJS: DI, controllers, guards
 ```
 
-## Compile and run the project
+Los path aliases están en `tsconfig.json`:
 
-```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+```
+@batch-cooking/domain
+@batch-cooking/domain-services
+@batch-cooking/use-cases
+@batch-cooking/infrastructure
+@batch-cooking/shared
 ```
 
-## Run tests
+## Requisitos previos
 
-```bash
-# unit tests
-$ npm run test
+- Node.js 20+
+- npm 10+
+- Acceso a un proyecto Supabase (PostgreSQL)
+- Acceso a un bucket en Google Cloud Storage
 
-# e2e tests
-$ npm run test:e2e
+## Configuración local
 
-# test coverage
-$ npm run test:cov
+Crear el archivo `config/dev.json` (está en `.gitignore`):
+
+```json
+{
+  "supabase": {
+    "url": "https://xxxx.supabase.co",
+    "jwtSecret": "tu-jwt-secret"
+  },
+  "gcp": {
+    "projectId": "tu-gcp-project",
+    "storageBucket": "tu-bucket-name"
+  }
+}
 ```
 
-## Deployment
+> En producción esta configuración llega como variable de entorno `PLATFORM_CONFIG` inyectada por Cloud Run desde Secret Manager.
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+## Comandos
 
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+npm install
+
+# Desarrollo (hot reload)
+npm run start:dev
+
+# Build de producción
+npm run build
+npm run start:prod
+
+# Tests
+npm run test          # unitarios
+npm run test:cov      # con cobertura
+npm run test:e2e      # e2e
+
+# Lint y formato
+npm run lint
+npm run format
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+## Migraciones de base de datos
 
-## Resources
+```bash
+# Aplicar migraciones en desarrollo
+npx prisma migrate dev
 
-Check out a few resources that may come in handy when working with NestJS:
+# Aplicar migraciones en producción (lo hace el CMD del Dockerfile)
+npx prisma migrate deploy
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+# Abrir Prisma Studio
+npx prisma studio
+```
 
-## Support
+## Docker
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+```bash
+# Build de la imagen
+docker build -t batch-cooking-api .
 
-## Stay in touch
+# Ejecutar con docker-compose (incluye variables de entorno)
+docker-compose up
+```
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+La imagen es multi-stage Alpine. El CMD final ejecuta `npx prisma migrate deploy && node dist/main`. Puerto: `8080`.
 
-## License
+## API — Resumen de endpoints
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+Todos los endpoints requieren `Authorization: Bearer <supabase-jwt>`. La documentación completa está disponible en `/docs` cuando se corre en modo no-producción.
+
+### Cliente (`CLIENT`)
+
+| Método | Ruta |
+|---|---|
+| GET | `/v1/profile/me` |
+| GET | `/v1/catalog/:weekIdentifier` |
+| GET/POST/PUT/DELETE | `/v1/delivery-addresses` |
+| GET | `/v1/delivery-zones` |
+| POST | `/v1/orders` |
+| GET | `/v1/orders?week=YYYY-WNN` |
+| GET | `/v1/orders/:orderId` |
+| PATCH | `/v1/orders/:orderId/items` |
+| PATCH | `/v1/orders/:orderId/package` |
+| POST | `/v1/orders/:orderId/checkout` |
+| POST | `/v1/orders/:orderId/voucher-upload-url` |
+| POST | `/v1/orders/:orderId/confirm-voucher` |
+| PATCH | `/v1/orders/:orderId/cancel` |
+| DELETE | `/v1/orders/:orderId` |
+
+### Staff (`STAFF` / `ADMIN`)
+
+| Método | Ruta |
+|---|---|
+| POST/DELETE | `/v1/catalog/dishes` |
+| PUT | `/v1/catalog/packages` |
+| GET | `/v1/operations/orders/pending-payment?week=` |
+| GET | `/v1/operations/orders/:orderId/voucher` |
+| POST | `/v1/operations/orders/:orderId/deliver` |
+| GET | `/v1/operations/reports/production?week=` |
+| GET | `/v1/operations/reports/delivery?week=` |
+| POST | `/v1/orders/:orderId/confirm-payment` |
+
+### Admin (`ADMIN`)
+
+| Método | Ruta |
+|---|---|
+| PUT | `/v1/admin/weekly-configs` |
+| PATCH | `/v1/admin/delivery-zones/:zoneId` |
+| POST | `/v1/admin/cleanup-vouchers` |
+
+## Estados de una orden
+
+```
+DRAFT → (checkout) → PENDING_PAYMENT → (confirm-payment) → CONFIRMED → (deliver) → DELIVERED
+  ↓                       ↓                   ↓
+CANCELLED             CANCELLED            CANCELLED
+```
+
+La ventana de pedidos cierra los **viernes a las 12:00 PM hora de Lima (UTC−5)**. El backend rechaza operaciones fuera de ventana con HTTP 422 (`order-window-closed`).
+
+## Flujo de subida de voucher
+
+El archivo nunca pasa por el backend:
+
+1. `POST /orders/:id/voucher-upload-url` → `{ uploadUrl, objectName }`
+2. `PUT {uploadUrl}` directo a GCS con el archivo en el body
+3. `POST /orders/:id/confirm-voucher` con `{ objectName }`
